@@ -33,8 +33,17 @@ public class TransferServiceImpl implements TransferService {
 		this.restTemplate = restTemplate;
 	}
 
-	//@Transactional(value="kafkaTransactionManager") //Specifies the transaction manager to use for this transaction
-	@Transactional //Tells Spring that the code in this method should executed as part or within a Transaciton
+
+	/*
+		@Transactional(value="kafkaTransactionManager") //Specifies the transaction manager to use for this transaction
+
+		@Transactional(value="kafkaTransactionManager", rollbackFor={TransferServiceException.class, ConnectException.class)
+		Specifies the Exceptions that will trigger a rollback.
+
+		@Transactional(value="kafkaTransactionManager", noRollbackFor={TransferServiceException.class)
+		Specifies the Exceptions that will not trigger a rollback.
+	 */
+	@Transactional //Tells Spring that the code in this method should executed as part or within a Transaction
 	@Override
 	public boolean transfer(TransferRestModel transferRestModel) {
 		WithdrawalRequestedEvent withdrawalEvent = new WithdrawalRequestedEvent(transferRestModel.getSenderId(),
