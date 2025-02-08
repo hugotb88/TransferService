@@ -76,11 +76,14 @@ public class KafkaConfig {
 		return new DefaultKafkaProducerFactory<>(producerConfigs());
 	}
 
+
+	//Configuration for Transactions
 	@Bean
 	KafkaTemplate<String, Object> kafkaTemplate(ProducerFactory<String, Object> producerFactory) {
 		return new KafkaTemplate<>(producerFactory);
 	}
 
+	//Configuration for Transactions
 	@Bean
 	KafkaTransactionManager<String, Object> kafkaTransactionManager(ProducerFactory<String, Object> producerFactory) {
 		return new KafkaTransactionManager<>(producerFactory);
