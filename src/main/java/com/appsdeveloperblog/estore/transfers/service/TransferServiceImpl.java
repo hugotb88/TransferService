@@ -1,9 +1,12 @@
 package com.appsdeveloperblog.estore.transfers.service;
 
-import java.net.ConnectException;
-
+import com.appsdeveloperblog.estore.transfers.io.TransferEntity;
+import com.appsdeveloperblog.estore.transfers.io.TransferRepository;
+import com.fasterxml.jackson.databind.util.BeanUtil;
+import org.apache.kafka.common.Uuid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -14,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import com.appsdeveloperblog.estore.transfers.error.TransferServiceException;
-import com.appsdeveloperblog.estore.transfers.model.TransferRestModel;
+import com.appsdeveloperblog.estore.transfers.io.model.TransferRestModel;
 import com.appsdeveloperblog.payments.ws.core.events.DepositRequestedEvent;
 import com.appsdeveloperblog.payments.ws.core.events.WithdrawalRequestedEvent;
 
@@ -25,12 +28,14 @@ public class TransferServiceImpl implements TransferService {
 	private KafkaTemplate<String, Object> kafkaTemplate;
 	private Environment environment;
 	private RestTemplate restTemplate;
+	private TransferRepository transferRepository;
 
 	public TransferServiceImpl(KafkaTemplate<String, Object> kafkaTemplate, Environment environment,
-			RestTemplate restTemplate) {
+			RestTemplate restTemplate, TransferRepository transferRepository) {
 		this.kafkaTemplate = kafkaTemplate;
 		this.environment = environment;
 		this.restTemplate = restTemplate;
+		this.transferRepository= transferRepository;
 	}
 
 
@@ -43,7 +48,7 @@ public class TransferServiceImpl implements TransferService {
 		@Transactional(value="kafkaTransactionManager", noRollbackFor={TransferServiceException.class)
 		Specifies the Exceptions that will not trigger a rollback.
 	 */
-	@Transactional //Tells Spring that the code in this method should executed as part or within a Transaction
+	@Transactional("transactionManager") //Tells Spring that the code in this method should executed as part or within a Transaction
 	@Override
 	public boolean transfer(TransferRestModel transferRestModel) {
 		WithdrawalRequestedEvent withdrawalEvent = new WithdrawalRequestedEvent(transferRestModel.getSenderId(),
@@ -51,7 +56,14 @@ public class TransferServiceImpl implements TransferService {
 		DepositRequestedEvent depositEvent = new DepositRequestedEvent(transferRestModel.getSenderId(),
 				transferRestModel.getRecepientId(), transferRestModel.getAmount());
 
+		TransferEntity transferEntity = new TransferEntity();
+		BeanUtils.copyProperties(transferRestModel, transferEntity);
+		transferEntity.setTransferId(Uuid.randomUuid().toString());
+
 		try {
+			//Save record to database
+			transferRepository.save(transferEntity);
+
 			kafkaTemplate.send(environment.getProperty("withdraw-money-topic", "withdraw-money-topic"),
 					withdrawalEvent);
 			LOGGER.info("Sent event to withdrawal topic.");

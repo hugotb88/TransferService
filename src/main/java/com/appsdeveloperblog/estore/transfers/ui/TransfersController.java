@@ -2,7 +2,7 @@ package com.appsdeveloperblog.estore.transfers.ui;
 
 import org.springframework.web.bind.annotation.RestController;
 
-import com.appsdeveloperblog.estore.transfers.model.TransferRestModel;
+import com.appsdeveloperblog.estore.transfers.io.model.TransferRestModel;
 import com.appsdeveloperblog.estore.transfers.service.TransferService;
 
 import org.slf4j.Logger;
